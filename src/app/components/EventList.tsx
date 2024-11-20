@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from 'react';
 import { fetchEvents, Event } from '../api/events';
 
@@ -8,14 +7,19 @@ const EventList: React.FC = () => {
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
-  const loadEvents = async (page = 1) => {
+
+  const loadEvents = async (page: number = 1) => {
     setLoading(true);
     setError(null);
+
     try {
-      const data = await fetchEvents(page);
-      setEvents(data.data);
-      setPagination(data.pagination);
+      const { data, pagination } = await fetchEvents(page, searchQuery, categoryFilter);
+
+      setEvents(data);
+      setPagination(pagination);
     } catch (error) {
       console.error('Error fetching events:', error);
       setError('Failed to load events. Please try again later.');
@@ -28,15 +32,53 @@ const EventList: React.FC = () => {
     loadEvents();
   }, []);
 
+
+  const handleSearch = () => {
+    loadEvents(1);
+  };
+
+
   const handlePageChange = (page: number) => {
     loadEvents(page);
   };
+
+
   const formatCurrency = (value: number) => {
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
+
   return (
     <section className="py-20 text-center text-black bg-gray-100">
       <h2 className="text-4xl font-bold mb-8">Upcoming Events</h2>
+
+      <div className="flex justify-center items-center mb-8 gap-4">
+        <input
+          type="text"
+          placeholder="Search events..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="border border-gray-300 rounded-lg p-2 w-1/3"
+        />
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg p-2 w-1/3"
+        >
+          <option value="">All Categories</option>
+          <option value="Music">Music</option>
+          <option value="Technology">Technology</option>
+          <option value="Sports">Sports</option>
+          <option value="Education">Education</option>
+        </select>
+        <button
+          onClick={handleSearch}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          Search
+        </button>
+      </div>
+
+
       {loading ? (
         <p className="text-lg">Loading events...</p>
       ) : error ? (
@@ -53,18 +95,9 @@ const EventList: React.FC = () => {
                   <h5 className="text-2xl font-bold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">{event.name}</h5>
                 </a>
                 <div className="mt-2">
-                  <p className="text-gray-700 flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 10.001 16.001A8 8 0 0010 2zm0 14a6 6 0 100-12 6 6 0 000 12z" /></svg>
-                    Type: {event.type}
-                  </p>
-                  <p className="text-gray-700 flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 10.001 16.001A8 8 0 0010 2zm0 14a6 6 0 100-12 6 6 0 000 12z" /></svg>
-                    Date: {new Date(event.startDate).toLocaleDateString()}
-                  </p>
-                  <p className="text-gray-700 flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 10.001 16.001A8 8 0 0010 2zm0 14a6 6 0 100-12 6 6 0 000 12z" /></svg>
-                    Seats Available: {event.available_seat}
-                  </p>
+                  <p className="text-gray-700">Type: {event.type}</p>
+                  <p className="text-gray-700">Date: {new Date(event.startDate).toLocaleDateString()}</p>
+                  <p className="text-gray-700">Seats Available: {event.available_seat}</p>
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <span className="text-3xl font-bold text-gray-900">
@@ -77,6 +110,8 @@ const EventList: React.FC = () => {
           ))}
         </div>
       )}
+
+
       <div className="mt-8 flex justify-center">
         <button
           onClick={() => handlePageChange(pagination.currentPage - 1)}

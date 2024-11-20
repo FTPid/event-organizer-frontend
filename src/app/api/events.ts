@@ -26,13 +26,17 @@ export interface Event {
     price?: number;
 }
 
-export const fetchEvents = async (page: number = 1): Promise<{ data: Event[]; pagination: { currentPage: number; totalPages: number } }> => {
-    // const accessToken = getCookie('access_token');
-    const response = await fetch(`http://127.0.0.1:8000/events/list?page=${page}`, {
+export const fetchEvents = async (page: number = 1, search?: string, category?: string): Promise<{ data: Event[]; pagination: { currentPage: number; totalPages: number } }> => {
+    const queryParams: any = { page };
+    if (search) queryParams.search = search;
+    if (category) queryParams.category = category;
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const response = await fetch(`http://127.0.0.1:8000/events/list?${queryString}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            // 'Authorization': `Bearer ${accessToken}`,
         },
     });
 
@@ -43,6 +47,8 @@ export const fetchEvents = async (page: number = 1): Promise<{ data: Event[]; pa
     const data = await response.json();
     return data;
 };
+
+
 
 export interface EventDetail {
     image: string | undefined;
