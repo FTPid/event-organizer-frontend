@@ -101,3 +101,37 @@ export async function fetchUserTransaction(): Promise<any> {
 
     return response.json();
 }
+
+
+
+export const fetchTicketDetails  = async (id: number) => {
+    const cookies = document.cookie;
+    const accessToken = cookies
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
+
+    if (!accessToken) {
+        Swal.fire({
+            title: "Unauthorized",
+            text: "Access token not found. Please log in to continue.",
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+        throw new Error("Unauthorized: Access token not found in cookies.");
+    }
+
+    const response = await fetch(`http://127.0.0.1:8000/tickets/${id}`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+
+    if (!response.ok) {
+        const errorMessage = await response.text();
+        throw new Error(`Failed to fetch: ${errorMessage}`);
+    }
+
+    return await response.json();
+};
