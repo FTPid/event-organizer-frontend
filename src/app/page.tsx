@@ -3,6 +3,7 @@ import EventList from "./components/EventList";
 import Footer from "./components/Footer";
 import Hero from "./components/Hero";
 import Navbar from "./components/Navbar";
+import Testimonials from "./components/Testimonial";
 
 const HomePage = () => {
   return (
@@ -11,7 +12,8 @@ const HomePage = () => {
       <Hero />
       <CategoryEvent />
       <EventList />
-      <Footer /> 
+      <Testimonials />
+      <Footer />
     </div>
   );
 };

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 
 import { parseCookies } from 'nookies';
 import { jwtDecode } from 'jwt-decode';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 interface DecodedToken {
   id: number;
@@ -41,6 +43,11 @@ const Navbar = () => {
       setRole(null);
     }
     setLoading(false);
+
+    AOS.init({
+      duration: 1000,
+      once: true,
+    });
   }, []);
 
   const handleLogout = () => {
@@ -55,16 +62,15 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-black bg-opacity-50 z-50">
+    <nav className="fixed top-0 left-0 w-full bg-black bg-opacity-50 z-50" data-aos="fade-down">
       <div className="container mx-auto flex justify-between items-center p-4">
-        <Link href="/" className="text-2xl font-bold text-white">
+        <Link href="/" className="text-2xl font-bold text-white" data-aos="fade-right">
           Lumiere Organizer
         </Link>
-
-        {/* Burger Menu Button */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="block md:hidden text-white focus:outline-none"
+          data-aos="fade-left"
         >
           <svg
             className="w-6 h-6"
@@ -91,26 +97,26 @@ const Navbar = () => {
           </svg>
         </button>
 
-        {/* Navigation Links */}
         <div
           className={`${menuOpen ? 'block' : 'hidden'
             } md:flex space-x-4 absolute md:relative top-full md:top-auto left-0 md:left-auto w-full md:w-auto bg-black md:bg-transparent text-center md:text-left`}
+          data-aos="fade-up"
         >
-          <Link href="/" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300">
+          <Link href="/" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in">
             Home
           </Link>
-          <Link href="/about-us" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300">
+          <Link href="/about-us" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="200">
             About Us
           </Link>
-          <Link href="/events" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300">
+          <Link href="/events" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="400">
             Events
           </Link>
-          <Link href="/tickets" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300">
+          <Link href="/tickets" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="600">
             Tickets
           </Link>
 
           {role === 'ORGANIZER' && (
-            <Link href="/settings" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300">
+            <Link href="/settings" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="800">
               Settings
             </Link>
           )}
@@ -118,11 +124,13 @@ const Navbar = () => {
             <button
               onClick={handleLogout}
               className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300"
+              data-aos="zoom-in"
+              data-aos-delay="1000"
             >
               Logout
             </button>
           ) : (
-            <Link href="/login" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300">
+            <Link href="/login" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="1000">
               Login
             </Link>
           )}
