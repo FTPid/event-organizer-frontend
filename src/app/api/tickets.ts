@@ -1,3 +1,5 @@
+import Swal from "sweetalert2";
+
 export const createTicketPurchase = async (
     userId: number,
     eventId: number,
@@ -33,3 +35,69 @@ export const createTicketPurchase = async (
         throw error;
     }
 };
+
+export async function fetchUserTicketsFromClient(): Promise<any> {
+    const cookies = document.cookie;
+    const accessToken = cookies
+        .split('; ')
+        .find((row) => row.startsWith('access_token='))
+        ?.split('=')[1];
+
+    if (!accessToken) {
+        throw new Error('Unauthorized: Access token not found in cookies.');
+    }
+
+    const response = await fetch('http://127.0.0.1:8000/tickets/list', {
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+        },
+        cache: 'no-store',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+
+
+export async function fetchUserTransaction(): Promise<any> {
+    const cookies = document.cookie;
+    const accessToken = cookies
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
+
+    if (!accessToken) {
+        Swal.fire({
+            title: "Unauthorized",
+            text: "Access token not found. Please log in to continue.",
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+        throw new Error("Unauthorized: Access token not found in cookies.");
+    }
+
+    const response = await fetch("http://127.0.0.1:8000/tickets/transaction", {
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        Swal.fire({
+            title: "Error",
+            text: `Error: ${response.status} - ${response.statusText}`,
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+    }
+
+    return response.json();
+}
