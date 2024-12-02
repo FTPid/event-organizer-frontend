@@ -13,20 +13,18 @@ const EventList: React.FC = () => {
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [seatCount, setSeatCount] = useState<number>(1);
-  const [promoCode, setPromoCode] = useState<string>('');
+  const [promoCode, setPromoCode] = useState<string>("");
   const [transaction, setTransaction] = useState<any | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,7 +33,6 @@ const EventList: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
 
   useEffect(() => {
     AOS.init({
@@ -51,7 +48,7 @@ const EventList: React.FC = () => {
     try {
       const { data, pagination } = await fetchEvents(page, debouncedSearchQuery, categoryFilter);
       setEvents(data);
-      setPagination(pagination);
+      setPagination(pagination); // Update pagination state
     } catch (error) {
       setError("Failed to load events. Please try again later.");
     } finally {
@@ -63,7 +60,7 @@ const EventList: React.FC = () => {
     const accessToken = Cookies.get("access_token");
     if (accessToken) {
       try {
-        const decoded: { id: number, exp: number } = jwtDecode(accessToken);
+        const decoded: { id: number; exp: number } = jwtDecode(accessToken);
         const currentTime = Math.floor(Date.now() / 1000);
         if (decoded.exp > currentTime) {
           setIsLoggedIn(true);
@@ -75,8 +72,8 @@ const EventList: React.FC = () => {
         setIsLoggedIn(false);
       }
     }
-    loadEvents();
-  }, [debouncedSearchQuery, categoryFilter]);
+    loadEvents(pagination.currentPage); // Load events for the current page
+  }, [debouncedSearchQuery, categoryFilter, pagination.currentPage]);
 
   const formatCurrency = (value: number) => {
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -90,9 +87,9 @@ const EventList: React.FC = () => {
   const handleSubmitPurchase = async () => {
     if (!isLoggedIn || !selectedEvent) {
       Swal.fire({
-        title: 'Login Required',
-        icon: 'error',
-        confirmButtonText: 'OK',
+        title: "Login Required",
+        icon: "error",
+        confirmButtonText: "OK",
       });
       return;
     }
@@ -113,25 +110,37 @@ const EventList: React.FC = () => {
         setPurchaseError(null);
 
         Swal.fire({
-          title: 'Transaction Successful!',
+          title: "Transaction Successful!",
           text: `Transaction ID: ${responseData.transaction.id}\nTotal Amount: ${responseData.transaction.totalAmount} IDR\nDiscount: ${responseData.transaction.discount} IDR\nPayment Status: ${responseData.transaction.paymentStatus}`,
-          icon: 'success',
-          confirmButtonText: 'OK',
+          icon: "success",
+          confirmButtonText: "OK",
         });
 
         setShowModal(false);
-
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An error occurred while purchasing tickets.";
+        const errorMessage =
+          error instanceof Error ? error.message : "An error occurred while purchasing tickets.";
         setPurchaseError(errorMessage);
         setTransaction(null);
         Swal.fire({
-          title: 'Cant buy ticket!',
+          title: "Can't buy ticket!",
           text: errorMessage,
-          icon: 'error',
-          confirmButtonText: 'OK',
+          icon: "error",
+          confirmButtonText: "OK",
         });
       }
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.currentPage > 1) {
+      setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.currentPage < pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, currentPage: prev.currentPage + 1 }));
     }
   };
 
@@ -165,59 +174,92 @@ const EventList: React.FC = () => {
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 sm:px-6 lg:px-8 xl:px-16">
-          {events.map((event) => (
-            <div
-              key={event.id}
-              className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden transition-all transform hover:scale-105 hover:shadow-2xl duration-300"
-              data-aos="fade-up"
-            >
-              <a href={`/events/${event.id}`} className="block">
-                <div className="relative">
-                  <img
-                    className="w-full h-56 object-cover transition-all duration-300 transform hover:scale-110"
-                    src={event.image}
-                    alt={event.name}
-                  />
-                  <div className="absolute top-4 left-4 bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-lg">
-                    {event.type}
+        <>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2 sm:px-6 lg:px-8 xl:px-16">
+            {events.map((event) => (
+              <div
+                key={event.id}
+                className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden transition-all transform hover:scale-105 hover:shadow-2xl duration-300"
+                data-aos="fade-up"
+              >
+                <a href={`/events/${event.id}`} className="block">
+                  <div className="relative">
+                    <img
+                      className="w-full h-56 object-cover transition-all duration-300 transform hover:scale-110"
+                      src={event.image}
+                      alt={event.name}
+                    />
+                    <div className="absolute top-4 left-4 bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-lg">
+                      {event.type}
+                    </div>
+                  </div>
+                </a>
+                <div className="p-6">
+                  <a href={`/events/${event.id}`} className="block">
+                    <h5 className="text-2xl font-semibold text-gray-900 hover:text-blue-600 transition-colors mb-3">
+                      {event.name}
+                    </h5>
+                  </a>
+                  <div className="text-gray-600 mb-4">
+                    <p className="text-sm mb-2">
+                      Date: {new Date(event.startDate).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm">Seats Available: {event.available_seat}</p>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-xl font-bold text-gray-900">
+                      {event.price ? `${formatCurrency(event.price)} IDR` : "Free"}
+                    </span>
+                    <button
+                      onClick={() => handleBuyTicket(event)}
+                      className="bg-blue-600 text-white hover:bg-blue-700 font-medium rounded-lg px-5 py-2 transition-all duration-300 transform hover:scale-105 focus:outline-none"
+                    >
+                      Buy Ticket
+                    </button>
                   </div>
                 </div>
-              </a>
-              <div className="p-6">
-                <a href={`/events/${event.id}`} className="block">
-                  <h5 className="text-2xl font-semibold text-gray-900 hover:text-blue-600 transition-colors mb-3">
-                    {event.name}
-                  </h5>
-                </a>
-                <div className="text-gray-600 mb-4">
-                  <p className="text-sm mb-2">Date: {new Date(event.startDate).toLocaleDateString()}</p>
-                  <p className="text-sm">Seats Available: {event.available_seat}</p>
-                </div>
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-xl font-bold text-gray-900">
-                    {event.price ? `${formatCurrency(event.price)} IDR` : "Free"}
-                  </span>
-                  <button
-                    onClick={() => handleBuyTicket(event)}
-                    className="bg-blue-600 text-white hover:bg-blue-700 font-medium rounded-lg px-5 py-2 transition-all duration-300 transform hover:scale-105 focus:outline-none"
-                  >
-                    Buy Ticket
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-center items-center mt-8 gap-4">
+            <button
+              onClick={handlePreviousPage}
+              disabled={pagination.currentPage === 1}
+              className={`px-4 py-2 rounded-lg text-white ${pagination.currentPage === 1 ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+            >
+              Back
+            </button>
+            <span className="text-lg font-medium">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+            <button
+              onClick={handleNextPage}
+              disabled={pagination.currentPage === pagination.totalPages}
+              className={`px-4 py-2 rounded-lg text-white ${pagination.currentPage === pagination.totalPages
+                ? "bg-gray-400"
+                : "bg-blue-600 hover:bg-blue-700"
+                }`}
+            >
+              Next
+            </button>
+          </div>
+        </>
       )}
 
       {/* Modal for ticket purchase */}
       {showModal && selectedEvent && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
           <div className="bg-white p-8 rounded-lg w-96">
-            <h2 className="text-2xl font-bold mb-4">Purchase Tickets for {selectedEvent.name}</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Purchase Tickets for {selectedEvent.name}
+            </h2>
             <div>
-              <label htmlFor="seatCount" className="block text-gray-700">Seat Count:</label>
+              <label htmlFor="seatCount" className="block text-gray-700">
+                Seat Count:
+              </label>
               <input
                 type="number"
                 id="seatCount"
@@ -227,7 +269,9 @@ const EventList: React.FC = () => {
               />
             </div>
             <div>
-              <label htmlFor="promoCode" className="block text-gray-700">Promo Code (Optional):</label>
+              <label htmlFor="promoCode" className="block text-gray-700">
+                Promo Code (Optional):
+              </label>
               <input
                 type="text"
                 id="promoCode"
@@ -255,7 +299,6 @@ const EventList: React.FC = () => {
         </div>
       )}
     </section>
-
   );
 };
 

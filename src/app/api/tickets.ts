@@ -104,7 +104,7 @@ export async function fetchUserTransaction(): Promise<any> {
 
 
 
-export const fetchTicketDetails  = async (id: number) => {
+export const fetchTicketDetails = async (id: number) => {
     const cookies = document.cookie;
     const accessToken = cookies
         .split("; ")
@@ -124,6 +124,7 @@ export const fetchTicketDetails  = async (id: number) => {
     const response = await fetch(`http://127.0.0.1:8000/tickets/${id}`, {
         method: "GET",
         headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
         },
     });
@@ -134,4 +135,36 @@ export const fetchTicketDetails  = async (id: number) => {
     }
 
     return await response.json();
+};
+
+
+
+
+export const uploadPaymentProof = async (
+    transactionId: number,
+    file: File,
+    accessToken: string
+) => {
+    const formData = new FormData();
+    formData.append('paymentProof', file);
+
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/events/update/payment-proof/${transactionId}`, {
+            method: "PATCH",
+            headers: {
+                // Don't set Content-Type manually
+                Authorization: `Bearer ${accessToken}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "An error occurred while uploading the payment proof.");
+        }
+
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
 };

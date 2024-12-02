@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchUserTransaction, fetchTicketDetails } from "../api/tickets";
+import { fetchUserTransaction, fetchTicketDetails, uploadPaymentProof } from "../api/tickets";
 import { FaTicketAlt, FaEye, FaCheck, FaTimes } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 interface Transaction {
     id: number;
@@ -45,8 +46,10 @@ const ListTransaction = () => {
         ticket: TicketDetail[];
         event: EventDetail | null;
     } | null>(null);
+    const [paymentProof, setPaymentProof] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
 
-    // Fetch transactions on component load
+
     useEffect(() => {
         const getTransactions = async () => {
             try {
@@ -62,27 +65,77 @@ const ListTransaction = () => {
         getTransactions();
     }, []);
 
-    // Open modal for transaction details
+
     const openModal = (transaction: Transaction) => {
         console.log("Opening transaction modal:", transaction); // Debugging
         setSelectedTransaction(transaction);
     };
 
-    // Close modal
+
     const closeModal = () => {
         setSelectedTransaction(null);
     };
 
-    // Open modal for ticket details
+
     const openTicketModal = async (transactionId: number) => {
         try {
-            console.log("Fetching ticket details for transaction:", transactionId); // Debugging
+            console.log("Fetching ticket details for transaction:", transactionId);
             const data = await fetchTicketDetails(transactionId);
             setTicketDetails(data);
         } catch (error) {
             console.error("Failed to fetch ticket details:", error);
         }
     };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            setPaymentProof(event.target.files[0]);
+        }
+    };
+
+
+    const handleUploadProof = async () => {
+
+        const cookies = document.cookie;
+        const accessToken = cookies
+            .split("; ")
+            .find((row) => row.startsWith("access_token="))
+            ?.split("=")[1];
+
+        if (!accessToken) {
+            Swal.fire({
+                title: "Unauthorized",
+                text: "Access token not found. Please log in to continue.",
+                icon: "error",
+                confirmButtonText: "OK",
+            });
+            return;
+        }
+
+        if (!paymentProof) {
+            alert("Please select a proof of payment to upload.");
+            return;
+        }
+
+        if (selectedTransaction) {
+            setUploading(true);
+            try {
+                await uploadPaymentProof(selectedTransaction.id, paymentProof, accessToken);
+                Swal.fire({
+                    text: "Upload successful.",
+                    icon: "success",
+                    confirmButtonText: "OK",
+                });
+            } catch (error) {
+                console.error("Error uploading payment proof:", error);
+                alert("Failed to upload proof of payment.");
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
+
+
 
     // Close ticket modal
     const closeTicketModal = () => {
@@ -120,10 +173,17 @@ const ListTransaction = () => {
                             <span
                                 className={`inline-block px-3 py-1 rounded-full font-semibold ${transaction.paymentStatus === "PENDING"
                                     ? "bg-yellow-200 text-yellow-800"
-                                    : "bg-green-200 text-green-800"
+                                    : transaction.paymentStatus === "VERIFICATION"
+                                        ? "bg-blue-200 text-blue-800"
+                                        : "bg-green-200 text-green-800"
                                     }`}
                             >
-                                {transaction.paymentStatus === "PENDING" ? "Pending" : "Complete"}
+                                {transaction.paymentStatus === "PENDING"
+                                    ? "Pending"
+                                    : transaction.paymentStatus === "VERIFICATION"
+                                        ? "Verification"
+                                        : "Complete"
+                                }
                             </span>
                         </div>
 
@@ -170,6 +230,28 @@ const ListTransaction = () => {
                         <p><span className="font-semibold">Payment Status:</span> {selectedTransaction.paymentStatus}</p>
                         <p><span className="font-semibold">Created At:</span> {new Date(selectedTransaction.createdAt).toLocaleString()}</p>
 
+                        {/* Add Payment Proof Upload Section */}
+                        {selectedTransaction.paymentStatus === 'PENDING' && (
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold">Upload Payment Proof</h3>
+
+                                {/* Input for file selection */}
+                                <input
+                                    type="file"
+                                    onChange={handleFileChange}
+                                    className="mt-2 w-full p-2 border border-gray-300 rounded-md"
+                                />
+
+                                {/* Upload Button */}
+                                <button
+                                    onClick={handleUploadProof}
+                                    className="mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                                >
+                                    {uploading ? "Uploading..." : "Upload Proof"}
+                                </button>
+                            </div>
+                        )}
+
                         <button
                             onClick={closeModal}
                             className="mt-4 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition"
@@ -180,109 +262,111 @@ const ListTransaction = () => {
                 </div>
             )}
 
-           
+
+
+
             {/* Modal for Ticket and Event Details */}
-            {/* Modal for Ticket and Event Details */}
-{ticketDetails && (
-    <div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        onClick={closeTicketModal}
-    >
-        <div
-            className="bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-lg shadow-lg w-full max-w-lg relative mx-4 max-h-screen overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-        >
-            <button
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-                onClick={closeTicketModal}
-            >
-                <FaTimes />
-            </button>
-
-            <div className="p-6">
-                <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">🎫 Your Event Ticket</h2>
-
-                {ticketDetails.event && (
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-300 p-4">
-                        {/* Event Image */}
-                        <div className="relative w-full h-40 rounded-lg overflow-hidden">
-                            <img
-                                src={ticketDetails.event.image}
-                                alt={ticketDetails.event.name}
-                                className="w-full h-full object-cover"
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white py-2 px-4">
-                                <h3 className="text-lg font-bold">{ticketDetails.event.name}</h3>
-                                <p className="text-sm">{ticketDetails.event.location}</p>
-                            </div>
-                        </div>
-
-                        {/* Event Details */}
-                        <div className="mt-4">
-                            <p>
-                                <span className="font-semibold">Organizer:</span> {ticketDetails.event.organizer}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Start Date:</span>{" "}
-                                {new Date(ticketDetails.event.startDate).toLocaleString()}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Category:</span> {ticketDetails.event.category}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Price:</span>{" "}
-                                {ticketDetails.event.price.toLocaleString()} IDR
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Ticket Details */}
-                {ticketDetails.ticket.map((ticket) => (
+            {ticketDetails && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    onClick={closeTicketModal}
+                >
                     <div
-                        key={ticket.id}
-                        className="bg-gray-100 mt-6 rounded-lg shadow-lg border border-gray-200 p-4 flex flex-col sm:flex-row items-center justify-between"
+                        className="bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-lg shadow-lg w-full max-w-lg relative mx-4 max-h-screen overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex-1">
-                            <p className="font-bold text-lg text-gray-800">Ticket No</p>
-                            <p className="text-gray-600">{ticket.id}</p>
-                        </div>
-                        <div className="flex-1 text-center">
-                            <p className="font-bold text-lg text-gray-800">Transaction</p>
-                            <p className="text-gray-600">{ticket.transactionId}</p>
-                        </div>
-                        <div className="flex-1 text-right">
-                            <p className="font-bold text-lg text-gray-800">Issued </p>
-                            <p className="text-gray-600">
-                                {new Date(ticket.createdAt).toLocaleString()}
-                            </p>
-                        </div>
-                    </div>
-                ))}
+                        <button
+                            className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                            onClick={closeTicketModal}
+                        >
+                            <FaTimes />
+                        </button>
 
-                {/* QR Code for Verification */}
-                <div className="mt-6 flex items-center justify-center">
-                    <div className="bg-white border border-gray-300 rounded-lg p-4 flex flex-col items-center">
-                        <p className="text-gray-700 text-sm mb-2">Scan this QR Code</p>
-                        <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticketDetails.ticket[0]?.id}`}
-                            alt="QR Code"
-                            className="w-32 h-32"
-                        />
+                        <div className="p-6">
+                            <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">🎫 Your Event Ticket</h2>
+
+                            {ticketDetails.event && (
+                                <div className="bg-white rounded-lg shadow-lg border border-gray-300 p-4">
+                                    {/* Event Image */}
+                                    <div className="relative w-full h-40 rounded-lg overflow-hidden">
+                                        <img
+                                            src={ticketDetails.event.image}
+                                            alt={ticketDetails.event.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white py-2 px-4">
+                                            <h3 className="text-lg font-bold">{ticketDetails.event.name}</h3>
+                                            <p className="text-sm">{ticketDetails.event.location}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Event Details */}
+                                    <div className="mt-4">
+                                        <p>
+                                            <span className="font-semibold">Organizer:</span> {ticketDetails.event.organizer}
+                                        </p>
+                                        <p>
+                                            <span className="font-semibold">Start Date:</span>{" "}
+                                            {new Date(ticketDetails.event.startDate).toLocaleString()}
+                                        </p>
+                                        <p>
+                                            <span className="font-semibold">Category:</span> {ticketDetails.event.category}
+                                        </p>
+
+                                        <p>
+                                            <span className="font-semibold">Price:</span>{" "}
+                                            {ticketDetails.event.price.toLocaleString()} IDR
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Ticket Details */}
+                            {ticketDetails.ticket.map((ticket) => (
+                                <div
+                                    key={ticket.id}
+                                    className="bg-gray-100 mt-6 rounded-lg shadow-lg border border-gray-200 p-4 flex flex-col sm:flex-row items-center justify-between"
+                                >
+                                    <div className="flex-1">
+                                        <p className="font-bold text-lg text-gray-800">Ticket No</p>
+                                        <p className="text-gray-600">{ticket.id}</p>
+                                    </div>
+                                    <div className="flex-1 text-center">
+                                        <p className="font-bold text-lg text-gray-800">Transaction</p>
+                                        <p className="text-gray-600">{ticket.transactionId}</p>
+                                    </div>
+                                    <div className="flex-1 text-right">
+                                        <p className="font-bold text-lg text-gray-800">Issued </p>
+                                        <p className="text-gray-600">
+                                            {new Date(ticket.createdAt).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* QR Code for Verification */}
+                            <div className="mt-6 flex items-center justify-center">
+                                <div className="bg-white border border-gray-300 rounded-lg p-4 flex flex-col items-center">
+                                    <p className="text-gray-700 text-sm mb-2">Scan this QR Code</p>
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticketDetails.ticket[0]?.id}`}
+                                        alt="QR Code"
+                                        className="w-32 h-32"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="my-6 border-t border-gray-300"></div>
+                            <button
+                                onClick={closeTicketModal}
+                                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <div className="my-6 border-t border-gray-300"></div>
-                <button
-                    onClick={closeTicketModal}
-                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition"
-                >
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-)}
+            )}
 
         </div>
     );

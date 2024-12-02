@@ -111,10 +111,16 @@ const Navbar = () => {
           <Link href="/events" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="400">
             Events
           </Link>
-          <Link href="/tickets" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="600">
-            Tickets
-          </Link>
-
+          {isLoggedIn ? (
+            <Link
+              href="/tickets"
+              className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300"
+              data-aos="zoom-in"
+              data-aos-delay="600"
+            >
+              Tickets
+            </Link>
+          ) : null}
           {role === 'ORGANIZER' && (
             <Link href="/settings" className="block py-2 md:inline-block md:py-0 text-white hover:text-yellow-300" data-aos="zoom-in" data-aos-delay="800">
               Settings
