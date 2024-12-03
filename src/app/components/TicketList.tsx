@@ -4,8 +4,10 @@ import React, { useEffect, useState } from "react";
 import { fetchUserTransaction, fetchTicketDetails, uploadPaymentProof } from "../api/tickets";
 import { FaTicketAlt, FaEye, FaCheck, FaTimes } from "react-icons/fa";
 import Swal from "sweetalert2";
+import { submitRating } from "../api/eventapi";
 
 interface Transaction {
+    [x: string]: any;
     id: number;
     userName: string;
     eventName: string;
@@ -15,6 +17,7 @@ interface Transaction {
     promotionId: string | null;
     paymentStatus: string;
     createdAt: string;
+    eventId: number;
 }
 
 interface TicketDetail {
@@ -48,7 +51,9 @@ const ListTransaction = () => {
     } | null>(null);
     const [paymentProof, setPaymentProof] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
-
+    const [rating, setRating] = useState<number | null>(null);
+    const [comment, setComment] = useState<string>("");
+    const [ratingSubmitted, setRatingSubmitted] = useState<boolean>(false);
 
     useEffect(() => {
         const getTransactions = async () => {
@@ -134,6 +139,45 @@ const ListTransaction = () => {
             }
         }
     };
+    const handleAddRating = async () => {
+        // Ensure selectedTransaction is not null
+        if (!selectedTransaction) {
+            alert("No transaction selected. Please select a valid transaction.");
+            return;
+        }
+
+        // Access eventId directly from selectedTransaction
+        const eventId = selectedTransaction.eventId;  // Now this is guaranteed to exist
+
+        if (!eventId) {
+            alert("Event ID is missing. Please select a valid transaction.");
+            return;
+        }
+
+        console.log("Selected Transaction:", selectedTransaction);
+
+        // Ensure rating and comment are provided
+        if (!rating || !comment) {
+            alert("Please fill out both the rating and comment fields.");
+            return;
+        }
+
+        try {
+            // Now submit the rating with the eventId
+            await submitRating(eventId, rating, comment);
+            setRatingSubmitted(true); // Close the modal or handle UI change
+        } catch (error) {
+            console.error("Error submitting rating:", error);
+            alert("An error occurred while submitting your rating.");
+        }
+    };
+
+
+
+
+
+
+
 
 
 
@@ -251,6 +295,14 @@ const ListTransaction = () => {
                                 </button>
                             </div>
                         )}
+                        {selectedTransaction && selectedTransaction.paymentStatus === "COMPLETED" && (
+                            <button
+                                onClick={() => setRatingSubmitted(false)}
+                                className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                            >
+                                Add Rating
+                            </button>
+                        )}
 
                         <button
                             onClick={closeModal}
@@ -262,6 +314,63 @@ const ListTransaction = () => {
                 </div>
             )}
 
+            {/* Modal for Add Rating */}
+            {!ratingSubmitted && selectedTransaction && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    onClick={() => setRatingSubmitted(true)}
+                >
+                    <div
+                        className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                            onClick={() => setRatingSubmitted(true)}
+                        >
+                            <FaTimes />
+                        </button>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Add Rating</h2>
+
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-600">Rating (1-5)</label>
+                            <input
+                                type="number"
+                                value={rating || ""}
+                                onChange={(e) => setRating(Number(e.target.value))}
+                                min="1"
+                                max="5"
+                                className="mt-2 w-full p-2 border border-gray-300 rounded-md"
+                                placeholder="Enter rating (1-5)"
+                            />
+                        </div>
+
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-600">Comment</label>
+                            <textarea
+                                value={comment}
+                                onChange={(e) => setComment(e.target.value)}
+                                className="mt-2 w-full p-2 border border-gray-300 rounded-md"
+                                rows={4}
+                                placeholder="Enter your comment here"
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleAddRating}
+                            className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                        >
+                            Submit Rating
+                        </button>
+                        <button
+                            onClick={() => setRatingSubmitted(true)}
+                            className="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
 
 
 

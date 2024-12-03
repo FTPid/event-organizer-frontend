@@ -97,3 +97,82 @@ export const deleteEvent = async (eventId: number) => {
 
     return await response.json();
 };
+
+
+
+export interface Promo {
+    name: string;
+    discount: number;
+    type: "DISCOUNT";
+    referralCode: string;
+    eventId: number;
+    isActive: boolean;
+    usageLimit: number;
+}
+
+
+export const createPromo = async (promoData: Promo) => {
+    try {
+        const response = await fetch(`${API_URL}/promotions/create`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(promoData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Error creating promo");
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error in createPromo:", error);
+        throw error;
+    }
+};
+
+
+
+export const submitRating = async (eventId: number, rating: number, comment: string) => {
+    const ratingData = {
+        eventId,
+        rating,
+        comment,
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/ratings/create`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(ratingData),
+        });
+
+        if (response.ok) {
+            Swal.fire({
+                title: "Success",
+                text: "Your rating has been submitted!",
+                icon: "success",
+                confirmButtonText: "OK",
+            });
+            return await response.json();
+        } else {
+            const errorData = await response.json();
+            Swal.fire({
+                title: "Error",
+                text: errorData.message || "Failed to submit rating.",
+                icon: "error",
+                confirmButtonText: "OK",
+            });
+            throw new Error(errorData.message || "Failed to submit rating.");
+        }
+    } catch (error) {
+        console.error("Error submitting rating:", error);
+        Swal.fire({
+            title: "Error",
+            text: "An error occurred while submitting your rating.",
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+        throw error;
+    }
+};
